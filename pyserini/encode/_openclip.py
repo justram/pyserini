@@ -5,6 +5,10 @@ from ._clip import load_pil_image
 from sklearn.preprocessing import normalize
 from pyserini.encode import DocumentEncoder, QueryEncoder
 
+from contextlib import nullcontext
+if torch.cuda.is_available():
+    from torch.cuda.amp import autocast
+
 
 class BaseOpenClipEncoder:
     def __init__(self, model_name: str, device: str='cuda:0', l2_norm: bool=True):
@@ -23,7 +27,8 @@ class BaseOpenClipEncoder:
 
 class OpenClipImageEncoder(BaseOpenClipEncoder):
     
-    def encode(self, paths, **kwargs):
+    @torch.no_grad()
+    def encode(self, paths, fp16=False, **kwargs):
         processed_images = []
 
         if isinstance(paths, str):
@@ -38,7 +43,7 @@ class OpenClipImageEncoder(BaseOpenClipEncoder):
 
         inputs = torch.tensor(np.stack(processed_images)).to(self.device)
 
-        with torch.no_grad():
+        with autocast() if fp16 else nullcontext():
             image_features = self.model.encode_image(inputs)
 
         embeddings = image_features.detach().cpu().numpy()
@@ -50,7 +55,8 @@ class OpenClipTextEncoder(BaseOpenClipEncoder):
         super().__init__(model_name, device, l2_norm)
         self.prefix = prefix
     
-    def encode(self, texts, max_length=77, **kwargs):
+    @torch.no_grad()
+    def encode(self, texts, max_length=77, fp16=False, **kwargs):
 
         if isinstance(texts, str):
             texts = [texts]
@@ -60,7 +66,7 @@ class OpenClipTextEncoder(BaseOpenClipEncoder):
 
         inputs = self.tokenizer(texts).to(self.device)
 
-        with torch.no_grad():
+        with autocast() if fp16 else nullcontext():
             text_features = self.model.encode_text(inputs)
 
         embeddings = text_features.detach().cpu().numpy()
