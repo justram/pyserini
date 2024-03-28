@@ -18,7 +18,7 @@ import argparse
 import sys
 
 from pyserini.encode import JsonlRepresentationWriter, FaissRepresentationWriter, JsonlCollectionIterator
-from pyserini.encode import DprDocumentEncoder, TctColBertDocumentEncoder, AnceDocumentEncoder, AggretrieverDocumentEncoder, AutoDocumentEncoder, CosDprDocumentEncoder, ClipDocumentEncoder
+from pyserini.encode import DprDocumentEncoder, TctColBertDocumentEncoder, AnceDocumentEncoder, AggretrieverDocumentEncoder, AutoDocumentEncoder, CosDprDocumentEncoder, ClipDocumentEncoder, OpenClipDocumentEncoder
 from pyserini.encode import UniCoilDocumentEncoder
 from pyserini.encode import OpenAIDocumentEncoder, OPENAI_API_RETRY_DELAY
 
@@ -34,6 +34,7 @@ encoder_class_map = {
     "cosdpr": CosDprDocumentEncoder,
     "auto": AutoDocumentEncoder,
     "clip": ClipDocumentEncoder,
+    "openclip": OpenClipDocumentEncoder
 }
 
 def init_encoder(encoder, encoder_class, device, pooling, l2_norm, prefix, multimodal):
@@ -65,6 +66,8 @@ def init_encoder(encoder, encoder_class, device, pooling, l2_norm, prefix, multi
     if (_encoder_class == "auto"):
         kwargs.update(dict(pooling=pooling, l2_norm=l2_norm, prefix=prefix))
     if (_encoder_class == "clip") or ("clip" in encoder):
+        kwargs.update(dict(l2_norm=True, prefix=prefix, multimodal=multimodal))
+    if (_encoder_class == "openclip"):
         kwargs.update(dict(l2_norm=True, prefix=prefix, multimodal=multimodal))
     return encoder_class(**kwargs)
 
@@ -113,7 +116,7 @@ if __name__ == '__main__':
     encoder_parser = commands.add_parser('encoder')
     encoder_parser.add_argument('--encoder', type=str, help='encoder name or path', required=True)
     encoder_parser.add_argument('--encoder-class', type=str, required=False, default=None,
-                                choices=["dpr", "bpr", "tct_colbert", "ance", "sentence-transformers", "openai-api", "auto"],
+                                choices=["dpr", "bpr", "tct_colbert", "ance", "sentence-transformers", "openai-api", "auto", "clip", "openclip"],
                                 help='which query encoder class to use. `default` would infer from the args.encoder')
     encoder_parser.add_argument('--fields', help='fields to encode', nargs='+', default=['text'], required=False)
     encoder_parser.add_argument('--multimodal', action='store_true', default=False)
@@ -143,14 +146,20 @@ if __name__ == '__main__':
         batch_size = int(args.encoder.rate_limit / (60 / OPENAI_API_RETRY_DELAY))
     else:
         batch_size = args.encoder.batch_size
+
+    print(args)
     
     with embedding_writer:
         for batch_info in collection_iterator(batch_size, args.input.shard_id, args.input.shard_num):
+            # Prepare input_kwargs for the encoder
             kwargs = {
                 'fp16': args.encoder.fp16,
                 'max_length': args.encoder.max_length,
                 'add_sep': args.encoder.add_sep,
             }
+            for field_name in args.encoder.fields:
+                kwargs[f'{field_name}s'] = batch_info[field_name] # encoder input kwargs follows the format of <field_name>s 
+            
             # Prepare input_kwargs for the encoder
             if not args.encoder.multimodal:
                 kwargs['texts'] = batch_info['text'] # pyserini text encoders takes 'texts' as default input    

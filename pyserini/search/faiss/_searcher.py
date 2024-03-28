@@ -40,7 +40,7 @@ from pyserini.index import Document
 from ._model import AnceEncoder
 import torch
 
-from ...encode import PcaEncoder, CosDprQueryEncoder, ClipEncoder
+from ...encode import PcaEncoder, CosDprQueryEncoder, ClipEncoder, OpenClipEncoder
 from ...encode._aggretriever import BERTAggretrieverEncoder, DistlBERTAggretrieverEncoder
 
 if is_faiss_available():
@@ -96,12 +96,13 @@ class ClipQueryEncoder(QueryEncoder):
         l2_norm: bool=False,
         prefix: str=None,
         multimodal: bool=False,
+        use_openclip: bool=False,
         **kwargs,
     ):
         super().__init__(encoded_query_dir)
         if encoder_dir:
             self.device = device
-            self.encoder = ClipEncoder(encoder_dir, device, l2_norm, prefix, multimodal)
+            self.encoder = ClipEncoder(encoder_dir, device, l2_norm, prefix, multimodal) if not use_openclip else OpenClipEncoder(encoder_dir, device, l2_norm, prefix, multimodal)
             self.has_model = True
         
         if not self.has_model and not self.has_encoded_query:

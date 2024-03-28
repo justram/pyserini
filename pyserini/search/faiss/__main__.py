@@ -41,7 +41,7 @@ def define_dsearch_args(parser):
                         help="Path to Faiss index or name of prebuilt index.")
     parser.add_argument('--encoder-class', type=str, metavar='which query encoder class to use. `default` would infer from the args.encoder',
                         required=False,
-                        choices=["dkrr", "dpr", "bpr", "tct_colbert", "ance", "sentence", "contriever", "auto", "aggretriever", "openai-api", "cosdpr"],
+                        choices=["dkrr", "dpr", "bpr", "tct_colbert", "ance", "sentence", "contriever", "auto", "aggretriever", "openai-api", "cosdpr", "clip", "openclip"],
                         default=None,
                         help='which query encoder class to use. `default` would infer from the args.encoder')
     parser.add_argument('--encoder', type=str, metavar='path to query encoder checkpoint or encoder name',
@@ -149,6 +149,8 @@ def init_query_encoder(encoder, encoder_class, tokenizer_name, topics_name, enco
             kwargs.update(dict(pooling=pooling, l2_norm=l2_norm, prefix=prefix))
         if (_encoder_class == "clip") or ("clip" in encoder):
             kwargs.update(dict(l2_norm=True, prefix=prefix, multimodal=multimodal))
+        if (_encoder_class == "openclip"):
+            kwargs.update(dict(l2_norm=True, prefix=prefix, multimodal=multimodal, use_openclip=True))
         return encoder_class(**kwargs)
 
     if encoded_queries:
