@@ -58,7 +58,7 @@ class OpenClipTextEncoder(BaseOpenClipEncoder):
         if self.prefix:
             texts = [f"{self.prefix} {text}" for text in texts]
 
-        inputs = self.tokenizer.tokenize(texts).to(self.device)
+        inputs = self.tokenizer(texts).to(self.device)
 
         with torch.no_grad():
             text_features = self.model.encode_text(inputs)

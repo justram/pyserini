@@ -26,7 +26,7 @@ from pyserini.util import get_cache_home
 from pyserini.pyclass import autoclass
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.WARNING, format='\n%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 # Wrappers around Lucene classes
 JQuery = autoclass('org.apache.lucene.search.Query')

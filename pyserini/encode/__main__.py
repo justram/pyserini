@@ -157,9 +157,6 @@ if __name__ == '__main__':
                 'max_length': args.encoder.max_length,
                 'add_sep': args.encoder.add_sep,
             }
-            for field_name in args.encoder.fields:
-                kwargs[f'{field_name}s'] = batch_info[field_name] # encoder input kwargs follows the format of <field_name>s 
-            
             # Prepare input_kwargs for the encoder
             if not args.encoder.multimodal:
                 kwargs['texts'] = batch_info['text'] # pyserini text encoders takes 'texts' as default input    

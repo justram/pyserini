@@ -115,6 +115,7 @@ def init_query_encoder(encoder, encoder_class, tokenizer_name, topics_name, enco
         "openai-api": OpenAIQueryEncoder,
         "auto": AutoQueryEncoder,
         "clip": ClipQueryEncoder,
+        "openclip": ClipQueryEncoder,
     }
 
     if encoder:
