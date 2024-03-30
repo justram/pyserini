@@ -120,6 +120,7 @@ if __name__ == '__main__':
                                 help='which query encoder class to use. `default` would infer from the args.encoder')
     encoder_parser.add_argument('--fields', help='fields to encode', nargs='+', default=['text'], required=False)
     encoder_parser.add_argument('--multimodal', action='store_true', default=False)
+    encoder_parser.add_argument('--overwrite_dir', type=str, help='overwrite file directory', default=None, required=False)
     encoder_parser.add_argument('--batch-size', type=int, help='batch size', default=64, required=False)
     encoder_parser.add_argument('--max-length', type=int, help='max length', default=256, required=False)
     encoder_parser.add_argument('--dimension', type=int, help='dimension', default=768, required=False)
@@ -140,7 +141,7 @@ if __name__ == '__main__':
         embedding_writer = FaissRepresentationWriter(args.output.embeddings, dimension=args.encoder.dimension)
     else:
         embedding_writer = JsonlRepresentationWriter(args.output.embeddings)
-    collection_iterator = JsonlCollectionIterator(args.input.corpus, args.input.fields, args.input.docid_field, delimiter)
+    collection_iterator = JsonlCollectionIterator(args.input.corpus, args.input.fields, args.input.docid_field, delimiter, args.encoder.overwrite_dir)
 
     if args.encoder.use_openai:
         batch_size = int(args.encoder.rate_limit / (60 / OPENAI_API_RETRY_DELAY))

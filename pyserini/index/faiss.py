@@ -22,6 +22,8 @@ import numpy as np
 
 import faiss
 from tqdm import tqdm
+from pathlib import Path
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -41,7 +43,7 @@ if __name__ == '__main__':
     faiss.omp_set_num_threads(args.threads)
 
     if not os.path.exists(args.output):
-        os.mkdir(args.output)
+        Path(args.output).mkdir(parents=True, exist_ok=True)
 
     if 'index' in os.listdir(args.input):
         shutil.copy(os.path.join(args.input, 'docid'), os.path.join(args.output, 'docid'))

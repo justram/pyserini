@@ -181,6 +181,7 @@ if __name__ == '__main__':
     parser.add_argument("--rerank", action="store_true", help='whethere rerank bpr sparse results.')
     parser.add_argument('--topics-format', type=str, metavar='format', default=TopicsFormat.DEFAULT.value,
                         help=f"Format of topics. Available: {[x.value for x in list(TopicsFormat)]}")
+    parser.add_argument('--overwrite-dir', type=str, default=None, help='overwrite query_dir to read files, useful for multimodal query')
     parser.add_argument('--output-format', type=str, metavar='format', default=OutputFormat.TREC.value,
                         help=f"Format of output. Available: {[x.value for x in list(OutputFormat)]}")
     parser.add_argument('--output', type=str, metavar='path', required=True, help="Path to output file.")
@@ -202,6 +203,8 @@ if __name__ == '__main__':
 
     query_iterator = get_query_iterator(args.topics, TopicsFormat(args.topics_format))
     topics = query_iterator.topics
+    if args.overwrite_dir:
+        query_iterator.update_topic_dir(args.overwrite_dir)
 
     query_encoder = init_query_encoder(
         args.encoder, args.encoder_class, args.tokenizer, args.topics, args.encoded_queries, args.device, args.max_length, args.pooling, args.l2_norm, args.query_prefix, args.multimodal)

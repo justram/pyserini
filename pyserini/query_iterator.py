@@ -85,8 +85,8 @@ class DefaultQueryIterator(QueryIterator):
             if topics_path.endswith('.json'):
                 with open(topics_path, 'r') as f:
                     topics = json.load(f)
-            elif 'beir' in topics_path:
-                topics = get_topics_with_reader('io.anserini.search.topicreader.TsvStringTopicReader', topics_path)
+            elif topics_path.endswith('.jsonl'):
+                topics = get_topics_with_reader('io.anserini.search.topicreader.JsonStringTopicReader', topics_path)
             elif topics_path.endswith('.tsv') or topics_path.endswith('.tsv.gz'):
                 try:
                     topics = get_topics_with_reader('io.anserini.search.topicreader.TsvIntTopicReader', topics_path)
@@ -96,8 +96,8 @@ class DefaultQueryIterator(QueryIterator):
                 topics = get_topics_with_reader('io.anserini.search.topicreader.TrecTopicReader', topics_path)
             elif 'cacm' in topics_path:
                 topics = get_topics_with_reader('io.anserini.search.topicreader.CacmTopicReader', topics_path)
-            elif topics_path.endswith('.jsonl'):
-                topics = get_topics_with_reader('io.anserini.search.topicreader.JsonStringTopicReader', topics_path)
+            elif 'beir' in topics_path and (topics_path.endwith('.tsv') or topics_path.endwith('.tsv.gz')):
+                topics = get_topics_with_reader('io.anserini.search.topicreader.TsvStringTopicReader', topics_path)
             else:
                 raise NotImplementedError(f"Not sure how to parse {topics_path}. Please specify the file extension.")
         else:
@@ -161,9 +161,12 @@ class MultimodalQueryIterator(QueryIterator):
         if not os.path.exists(query_path):
             raise FileNotFoundError(f"Query file for ID {id_} not found at {query_path}")
         return query_path
+    
+    def update_topic_dir(self, overwrite_dir: str):
+        self.topic_dir = overwrite_dir
 
     @classmethod
-    def from_topics(cls, topics_path: str):
+    def from_topics(cls, topics_path: str, overwrite_dir: str = None):
         if os.path.exists(topics_path):
             if topics_path.endswith('.jsonl'):
                 topics = get_topics_with_reader('io.anserini.search.topicreader.JsonStringTopicReader', topics_path)
@@ -174,7 +177,7 @@ class MultimodalQueryIterator(QueryIterator):
         if not topics:
             raise FileNotFoundError(f'Topic {topics_path} Not Found')
         order = QueryIterator.get_predefined_order(topics_path)
-        cls.topic_dir = os.path.dirname(topics_path)
+        cls.topic_dir = overwirte_dir if overwrite_dir else os.path.dirname(topics_path)
         return cls(topics, order)
     
 

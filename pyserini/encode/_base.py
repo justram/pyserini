@@ -57,16 +57,18 @@ class PcaEncoder:
 
 
 class JsonlCollectionIterator:
-    def __init__(self, collection_path: str, fields=None, docid_field=None, delimiter="\n"):
-        # Assume multimodal input files are located in the same directory as the collection file
-        if os.path.isdir(collection_path):
-            self.collection_dir = collection_path
-        else:
-            self.collection_dir = os.path.dirname(collection_path)
-        if fields:
-            self.fields = fields
-        else:
-            self.fields = ['text']
+    def __init__(self, collection_path: str, fields=None, docid_field=None, delimiter="\n", overwrite_dir: str = None):
+        """
+        Initializes the JsonlCollectionIterator.
+
+        :param collection_path: Path to the collection file or directory containing collection files.
+        :param fields: List of fields to extract from each document. Defaults to ['text'] if None.
+        :param docid_field: Name of the field used as the document ID. If None, attempts to find 'id', '_id', or 'docid'.
+        :param delimiter: Delimiter used to separate fields in the document contents. Defaults to newline.
+        :param overwrite_dir: If provided, overrides the directory in which to look for files. Useful for redefining storage paths.
+        """
+        self.collection_dir = overwrite_dir if overwrite_dir else (collection_path if os.path.isdir(collection_path) else os.path.dirname(collection_path))
+        self.fields = fields if fields else ['text']
         self.docid_field = docid_field
         self.delimiter = delimiter
         self.all_info = self._load(collection_path)
@@ -148,12 +150,10 @@ class JsonlCollectionIterator:
                             f"Line content: {info['contents']}"
                         )
 
-                    for i in range(len(fields_info)):
-                        if 'path' in self.fields[i]:
-                            _info = fields_info[i]
-                            if not _info.startswith(("http://", "https://")):
-                                fields_info[i] = os.path.join(self.collection_dir, fields_info[i])
-                        all_info[self.fields[i]].append(fields_info[i])
+                    for i, field in enumerate(self.fields):
+                        if 'path' in field and not fields_info[i].startswith(("http://", "https://")):
+                            fields_info[i] = os.path.join(self.collection_dir, fields_info[i])
+                        all_info[field].append(fields_info[i])
         return all_info
 
 
