@@ -19,6 +19,7 @@ import os
 import faiss
 import torch
 import numpy as np
+import pandas as pd
 from tqdm import tqdm
 
 
@@ -107,7 +108,7 @@ class JsonlCollectionIterator:
 
         # if all fields are under the key of info, read these rather than 'contents' 
         if all([field in info for field in self.fields]):
-            return [info[field].strip() for field in self.fields]
+            return [(info[field] or "").strip() for field in self.fields] # field could be None
 
         assert "contents" in info, f"contents not found in info: {info}"
         contents = info['contents']
@@ -214,3 +215,32 @@ class FaissRepresentationWriter(RepresentationWriter):
         for id_ in batch_info['id']:
             self.id_file.write(f'{id_}\n')
         self.index.add(np.ascontiguousarray(batch_info['vector']))
+
+
+class PandasRepresentationWriter(RepresentationWriter):
+    def __init__(self, dir_path):
+        self.dir_path = dir_path
+        self.filename = 'embeddings.pkl'
+        self.data = []  # Use a list to collect dictionaries representing rows
+
+    def __enter__(self):
+        if not os.path.exists(self.dir_path):
+            os.makedirs(self.dir_path)
+        # Open operation is not needed for DataFrame approach
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # Convert the list of dictionaries to a DataFrame and save as a pickle file
+        df = pd.DataFrame(self.data)
+        df.to_pickle(os.path.join(self.dir_path, self.filename))
+
+    def write(self, batch_info, fields=None):
+        for i in range(len(batch_info['id'])):
+            contents = "\n".join([batch_info[key][i] for key in fields])
+            vector = batch_info['vector'][i]
+            # Append a new dictionary for each item in the batch
+            self.data.append({
+                'id': batch_info['id'][i],
+                'contents': contents,
+                'vector': vector  # No need to convert to list here, Pandas can handle numpy arrays
+            })

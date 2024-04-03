@@ -17,7 +17,7 @@
 import argparse
 import sys
 
-from pyserini.encode import JsonlRepresentationWriter, FaissRepresentationWriter, JsonlCollectionIterator
+from pyserini.encode import JsonlRepresentationWriter, FaissRepresentationWriter, PandasRepresentationWriter, JsonlCollectionIterator
 from pyserini.encode import DprDocumentEncoder, TctColBertDocumentEncoder, AnceDocumentEncoder, AggretrieverDocumentEncoder, AutoDocumentEncoder, CosDprDocumentEncoder, ClipDocumentEncoder, OpenClipDocumentEncoder
 from pyserini.encode import UniCoilDocumentEncoder
 from pyserini.encode import OpenAIDocumentEncoder, OPENAI_API_RETRY_DELAY
@@ -112,6 +112,7 @@ if __name__ == '__main__':
     output_parser = commands.add_parser('output')
     output_parser.add_argument('--embeddings', type=str, help='directory to store encoded corpus', required=True)
     output_parser.add_argument('--to-faiss', action='store_true', default=False)
+    output_parser.add_argument('--to-pandas', action='store_true', default=False)
 
     encoder_parser = commands.add_parser('encoder')
     encoder_parser.add_argument('--encoder', type=str, help='encoder name or path', required=True)
@@ -119,6 +120,7 @@ if __name__ == '__main__':
                                 choices=["dpr", "bpr", "tct_colbert", "ance", "sentence-transformers", "openai-api", "auto", "clip", "openclip"],
                                 help='which query encoder class to use. `default` would infer from the args.encoder')
     encoder_parser.add_argument('--fields', help='fields to encode', nargs='+', default=['text'], required=False)
+    encoder_parser.add_argument('--text-field', help='change of text field name', default=None, required=False)
     encoder_parser.add_argument('--multimodal', action='store_true', default=False)
     encoder_parser.add_argument('--overwrite_dir', type=str, help='overwrite file directory', default=None, required=False)
     encoder_parser.add_argument('--batch-size', type=int, help='batch size', default=64, required=False)
@@ -137,10 +139,14 @@ if __name__ == '__main__':
     args = parse_args(parser, commands)
     delimiter = args.input.delimiter.replace("\\n", "\n")  # argparse would add \ prior to the passed '\n\n'
     encoder = init_encoder(args.encoder.encoder, args.encoder.encoder_class, device=args.encoder.device, pooling=args.encoder.pooling, l2_norm=args.encoder.l2_norm, prefix=args.encoder.prefix, multimodal=args.encoder.multimodal)
+    
     if args.output.to_faiss:
         embedding_writer = FaissRepresentationWriter(args.output.embeddings, dimension=args.encoder.dimension)
+    elif args.output.to_pandas:
+        embedding_writer = PandasRepresentationWriter(args.output.embeddings)
     else:
         embedding_writer = JsonlRepresentationWriter(args.output.embeddings)
+    
     collection_iterator = JsonlCollectionIterator(args.input.corpus, args.input.fields, args.input.docid_field, delimiter, args.encoder.overwrite_dir)
 
     if args.encoder.use_openai:
@@ -160,10 +166,10 @@ if __name__ == '__main__':
             }
             # Prepare input_kwargs for the encoder
             if not args.encoder.multimodal:
-                kwargs['texts'] = batch_info['text'] # pyserini text encoders takes 'texts' as default input    
+                kwargs['texts'] = batch_info['text'] if not args.encoder.text_field else batch_info[args.encoder.text_field] # pyserini text encoders takes 'texts' as default input    
             for field_name in args.encoder.fields:
                 kwargs[f'{field_name}s'] = batch_info[field_name] 
             
             embeddings = encoder.encode(**kwargs)
             batch_info['vector'] = embeddings
-            embedding_writer.write(batch_info, args.input.fields)
+            embedding_writer.write(batch_info, args.encoder.fields)

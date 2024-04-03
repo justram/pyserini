@@ -109,7 +109,10 @@ class ClipQueryEncoder(QueryEncoder):
             raise Exception('Neither query encoder model nor encoded queries provided. Please provide at least one')
 
     def encode(self, query: str):
-        return self.encoder.encode(query).flatten()
+        if self.has_model:
+            return self.encoder.encode(query).flatten()
+        else:
+            return super().encode(query)
 
 
 class AggretrieverQueryEncoder(QueryEncoder):
